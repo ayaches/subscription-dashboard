@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>サブスク管理ダッシュボード</title>
+</head>
+<body>
+
+<h1>サブスク管理ダッシュボード</h1>
+
+<!-- 月額合計表示 -->
+<!-- th:text：Javaから渡されたtotal変数をここに表示する -->
+<h2>月間合計：<span th:text="${total}"></span> 円</h2>
+
+<!-- 登録フォーム -->
+<!-- th:action：送信先URLをThymeleafで生成 -->
+<!-- th:object：フォーム全体をsubscriptionオブジェクトにバインド -->
+<h2>新規登録</h2>
+<form th:action="@{/subscriptions}" th:object="${subscription}" method="post">
+    <!-- th:field：フィールド名を自動でid/name属性に変換してバインド -->
+    <input type="text"   th:field="*{name}"        placeholder="サービス名（例：Netflix）" required />
+    <input type="number" th:field="*{price}"       placeholder="月額料金（円）" required />
+    <input type="number" th:field="*{billingDate}" placeholder="請求日（1〜31）" required />
+    <input type="text"   th:field="*{category}"    placeholder="カテゴリ（例：動画）" />
+    <button type="submit">登録する</button>
+</form>
+
+<!-- サービス一覧テーブル -->
+<h2>登録済みサービス一覧</h2>
+<!-- th:if：subscriptionsが空のときにメッセージを表示 -->
+<p th:if="${#lists.isEmpty(subscriptions)}">まだ登録されていません。</p>
+
+<!-- th:unless：subscriptionsが空でないときにテーブルを表示 -->
+<table border="1" th:unless="${#lists.isEmpty(subscriptions)}">
+    <thead>
+    <tr>
+        <th>サービス名</th>
+        <th>月額料金（円）</th>
+        <th>請求日</th>
+        <th>カテゴリ</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- th:each：subscriptionsリストをループしてtrを繰り返し生成 -->
+    <tr th:each="sub : ${subscriptions}">
+        <td th:text="${sub.name}"></td>
+        <!-- #numbers.formatInteger：数値を3桁区切りで表示 -->
+        <td th:text="${#numbers.formatInteger(sub.price, 0, 'COMMA')}"></td>
+        <td th:text="${sub.billingDate}"></td>
+        <td th:text="${sub.category}"></td>
+        <td>
+            <!-- 削除ボタン：POSTでIDを送信 -->
+            <form th:action="@{/subscriptions/{id}/delete(id=${sub.id})}" method="post">
+                <button type="submit">削除</button>
+            </form>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+</body>
+</html>
