@@ -3,35 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <title>サブスク管理ダッシュボード</title>
+    <!-- Chart.js：グラフ描画ライブラリ（CDNから読み込み） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        /* 全体レイアウト */
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+
+        /* 月額合計カード */
+        .total-card {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px;
+            display: inline-block;
+            margin: 10px 0 20px;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        /* 登録フォーム */
+        form.register-form {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        form.register-form input,
+        form.register-form select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+
+        form.register-form button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        form.register-form button:hover {
+            background-color: #2980b9;
+        }
+
+        /* 数値入力の▲▼矢印を非表示 */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        /* グラフエリア */
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            max-width: 400px;
+        }
+
+        /* 一覧テーブル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background-color: #2c3e50;
+            color: white;
+            padding: 12px 16px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* アラート行：請求日まで7日以内 */
+        tr.alert-row {
+            background-color: #ffeeba;
+        }
+
+        tr.alert-row td {
+            color: #c0392b;
+            font-weight: bold;
+        }
+
+        /* 編集・削除ボタン */
+        .btn-edit {
+            padding: 6px 12px;
+            background-color: #2ecc71;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9em;
+            margin-right: 6px;
+        }
+
+        .btn-edit:hover {
+            background-color: #27ae60;
+        }
+
+        .btn-delete {
+            padding: 6px 12px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+
+        /* アラートバッジ */
+        .alert-badge {
+            background-color: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            margin-left: 8px;
+        }
+    </style>
 </head>
 <body>
 
 <h1>サブスク管理ダッシュボード</h1>
 
-<!-- 月額合計表示 -->
-<!-- th:text：Javaから渡されたtotal変数をここに表示する -->
-<h2>月間合計：<span th:text="${total}"></span> 円</h2>
+<!-- 月額合計 -->
+<div class="total-card">
+    月間合計：<span th:text="${#numbers.formatInteger(total, 0, 'COMMA')}"></span> 円
+</div>
 
 <!-- 登録フォーム -->
-<!-- th:action：送信先URLをThymeleafで生成 -->
-<!-- th:object：フォーム全体をsubscriptionオブジェクトにバインド -->
 <h2>新規登録</h2>
-<form th:action="@{/subscriptions}" th:object="${subscription}" method="post">
-    <!-- th:field：フィールド名を自動でid/name属性に変換してバインド -->
-    <input type="text"   th:field="*{name}"        placeholder="サービス名（例：Netflix）" required />
-    <input type="number" th:field="*{price}"       placeholder="月額料金（円）" required />
-    <input type="number" th:field="*{billingDate}" placeholder="請求日（1〜31）" required />
-    <input type="text"   th:field="*{category}"    placeholder="カテゴリ（例：動画）" />
+<form class="register-form"
+      th:action="@{/subscriptions}"
+      th:object="${subscription}"
+      method="post">
+
+    <!-- サービス名 -->
+    <input type="text"
+           th:field="*{name}"
+           placeholder="サービス名（例：Netflix）"
+           required />
+
+    <!-- 月額料金 -->
+    <input type="number"
+           th:field="*{price}"
+           placeholder="月額料金（円）"
+           required />
+
+    <!-- 請求日：ドロップダウンで1〜31を選択 -->
+    <select th:field="*{billingDate}">
+        <option value="">請求日を選択</option>
+        <option th:each="day : ${#numbers.sequence(1, 31)}"
+                th:value="${day}"
+                th:text="${day} + '日'">
+        </option>
+    </select>
+
+    <!-- カテゴリ -->
+    <input type="text"
+           th:field="*{category}"
+           placeholder="カテゴリ（例：動画）" />
+
     <button type="submit">登録する</button>
 </form>
 
+<!-- 月間支出グラフ -->
+<h2>カテゴリ別支出グラフ</h2>
+<div class="chart-container">
+    <canvas id="categoryChart"></canvas>
+</div>
+
 <!-- サービス一覧テーブル -->
 <h2>登録済みサービス一覧</h2>
-<!-- th:if：subscriptionsが空のときにメッセージを表示 -->
 <p th:if="${#lists.isEmpty(subscriptions)}">まだ登録されていません。</p>
 
-<!-- th:unless：subscriptionsが空でないときにテーブルを表示 -->
-<table border="1" th:unless="${#lists.isEmpty(subscriptions)}">
+<table th:unless="${#lists.isEmpty(subscriptions)}">
     <thead>
     <tr>
         <th>サービス名</th>
@@ -42,22 +236,89 @@
     </tr>
     </thead>
     <tbody>
-    <!-- th:each：subscriptionsリストをループしてtrを繰り返し生成 -->
-    <tr th:each="sub : ${subscriptions}">
-        <td th:text="${sub.name}"></td>
-        <!-- #numbers.formatInteger：数値を3桁区切りで表示 -->
-        <td th:text="${#numbers.formatInteger(sub.price, 0, 'COMMA')}"></td>
-        <td th:text="${sub.billingDate}"></td>
-        <td th:text="${sub.category}"></td>
+    <!-- th:classappend：アラート対象の行にalert-rowクラスを追加 -->
+    <tr th:each="sub : ${subscriptions}"
+        th:classappend="${sub.alertTarget} ? 'alert-row' : ''">
+
         <td>
-            <!-- 削除ボタン：POSTでIDを送信 -->
-            <form th:action="@{/subscriptions/{id}/delete(id=${sub.id})}" method="post">
-                <button type="submit">削除</button>
+            <!-- サービス名 -->
+            <span th:text="${sub.name}"></span>
+            <!-- 7日以内の請求日ならアラートバッジを表示 -->
+            <span class="alert-badge"
+                  th:if="${sub.alertTarget}">もうすぐ請求日！</span>
+        </td>
+
+        <!-- 金額を3桁区切りで表示 -->
+        <td th:text="${#numbers.formatInteger(sub.price, 0, 'COMMA')}"></td>
+        <td th:text="${sub.billingDate} + '日'"></td>
+        <td th:text="${sub.category}"></td>
+
+        <td>
+            <!-- 編集ボタン -->
+            <a class="btn-edit"
+               th:href="@{/subscriptions/{id}/edit(id=${sub.id})}">編集</a>
+
+            <!-- 削除ボタン -->
+            <form style="display:inline;"
+                  th:action="@{/subscriptions/{id}/delete(id=${sub.id})}"
+                  method="post">
+                <button class="btn-delete" type="submit">削除</button>
             </form>
         </td>
     </tr>
     </tbody>
 </table>
+
+<!-- Chart.js：カテゴリ別円グラフの描画 -->
+<script th:inline="javascript">
+    // ThymeleafからJavaScriptにデータを渡す
+    // カテゴリ名と金額の合計をMap形式で受け取る
+    const subscriptions = /*[[${subscriptions}]]*/ [];
+
+    // カテゴリごとに金額を集計する
+    const categoryMap = {};
+    subscriptions.forEach(function(sub) {
+        const category = sub.category || '未分類';
+        const price = sub.price || 0;
+        if (categoryMap[category]) {
+            categoryMap[category] += price;
+        } else {
+            categoryMap[category] = price;
+        }
+    });
+
+    // グラフ用のラベルと金額データを配列に変換する
+    const labels = Object.keys(categoryMap);
+    const data = Object.values(categoryMap);
+
+    // グラフの色を定義する
+    const colors = [
+        '#3498db', '#2ecc71', '#e74c3c',
+        '#f39c12', '#9b59b6', '#1abc9c'
+    ];
+
+    // Chart.jsで円グラフを描画する
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut', // ドーナツグラフ
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
 
 </body>
 </html>

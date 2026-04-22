@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 // @RequiredArgsConstructor：finalフィールドへのコンストラクタインジェクションを自動生成
 @RequiredArgsConstructor
-// @RequestMapping：このクラス全体のURLの起点を"/subscriptions"に設定する
+// @RequestMapping：このクラス全体のURLの起点を"/templates"に設定する
 @RequestMapping("/subscriptions")
 public class SubscriptionController {
 
-    // ServiceをDIで受け取る（直接newしないのがポリモーフィズムの考え方）
+    // ServiceをDIで受け取る
     private final SubscriptionService service;
 
     // GET /subscriptions：一覧画面を表示する
@@ -51,6 +51,25 @@ public class SubscriptionController {
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable Long id) {
         service.delete(id);
+        return "redirect:/subscriptions";
+    }
+    // GET /subscriptions/{id}/edit：編集画面を表示する
+    // @PathVariable：URLの{id}部分をLong型で受け取る
+    @GetMapping("/{id}/edit")
+    public String editForm(@PathVariable Long id, Model model) {
+        // IDで既存データを1件取得してHTMLに渡す
+        model.addAttribute("subscription", service.findById(id));
+        return "subscriptions/edit";
+    }
+
+    // POST /subscriptions/{id}/edit：編集内容を保存する
+    // @ModelAttribute：フォームの入力値をSubscriptionオブジェクトに自動マッピング
+    @PostMapping("/{id}/edit")
+    public String update(@PathVariable Long id, @ModelAttribute Subscription subscription) {
+        // フォームから受け取ったオブジェクトにIDをセットする
+        // IDがあることでsave()がINSERTではなくUPDATEとして動く
+        subscription.setId(id);
+        service.save(subscription);
         return "redirect:/subscriptions";
     }
 }

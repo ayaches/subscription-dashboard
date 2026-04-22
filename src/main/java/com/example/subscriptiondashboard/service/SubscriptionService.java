@@ -25,6 +25,13 @@ public class SubscriptionService {
         return repository.findAll();
     }
 
+    // 編集：DBのsubscriptionsテーブルからIDでデータを1件取得する
+    // orElseThrow：データが見つからない場合は例外を投げる
+    public Subscription findById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("データが見つかりません ID: " + id));
+    }
+
     // 登録：受け取ったSubscriptionオブジェクトをDBに保存する
     public void save(Subscription subscription) {
         repository.save(subscription);
